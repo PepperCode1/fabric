@@ -28,7 +28,7 @@ import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.impl.client.model.BakedModelManagerHooks;
 
 @Mixin(BakedModelManager.class)
-public class MixinBakedModelManager implements BakedModelManagerHooks {
+public abstract class MixinBakedModelManager implements BakedModelManagerHooks {
 	@Shadow
 	private Map<Identifier, BakedModel> models;
 

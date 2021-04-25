@@ -22,34 +22,44 @@ import java.util.Set;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.At.Shift;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.minecraft.client.render.model.ModelLoader;
 import net.minecraft.client.render.model.UnbakedModel;
+import net.minecraft.client.render.model.json.JsonUnbakedModel;
 import net.minecraft.client.util.ModelIdentifier;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 
 import net.fabricmc.fabric.impl.client.model.ModelLoaderHooks;
+import net.fabricmc.fabric.impl.client.model.ModelLoaderTracker;
 import net.fabricmc.fabric.impl.client.model.ModelLoadingRegistryImpl;
 
 @Mixin(ModelLoader.class)
 public abstract class MixinModelLoader implements ModelLoaderHooks {
 	// this is the first one
 	@Shadow
+	@Final
 	public static ModelIdentifier MISSING;
 	@Shadow
+	@Final
 	private ResourceManager resourceManager;
 	@Shadow
+	@Final
 	private Set<Identifier> modelsToLoad;
 	@Shadow
+	@Final
 	private Map<Identifier, UnbakedModel> unbakedModels;
 	@Shadow
 	@Final
 	private Map<Identifier, UnbakedModel> modelsToBake;
 
+	@Unique
 	private ModelLoadingRegistryImpl.LoaderInstance fabric_mlrLoaderInstance;
 
 	@Shadow
@@ -61,7 +71,8 @@ public abstract class MixinModelLoader implements ModelLoaderHooks {
 	@Shadow
 	private void loadModel(Identifier id) { }
 
-	@Shadow public abstract UnbakedModel getOrLoadModel(Identifier id);
+	@Shadow
+	public abstract UnbakedModel getOrLoadModel(Identifier id);
 
 	@Inject(at = @At("HEAD"), method = "loadModel", cancellable = true)
 	private void loadModelHook(Identifier id, CallbackInfo ci) {
@@ -113,5 +124,15 @@ public abstract class MixinModelLoader implements ModelLoaderHooks {
 		loadModel(id);
 		modelsToLoad.remove(id);
 		return unbakedModels.get(id);
+	}
+
+	@Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/model/json/JsonUnbakedModel;deserialize(Ljava/io/Reader;)Lnet/minecraft/client/render/model/json/JsonUnbakedModel;"), method = "loadModelFromJson(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/render/model/json/JsonUnbakedModel;")
+	private void onDeserializeJsonModel(Identifier id, CallbackInfoReturnable<JsonUnbakedModel> cir) {
+		ModelLoaderTracker.CURRENT_JSON_ID.get().set(id);
+	}
+
+	@Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/model/json/JsonUnbakedModel;deserialize(Ljava/io/Reader;)Lnet/minecraft/client/render/model/json/JsonUnbakedModel;", shift = Shift.AFTER), method = "loadModelFromJson(Lnet/minecraft/util/Identifier;)Lnet/minecraft/client/render/model/json/JsonUnbakedModel;")
+	private void postDeserializeJsonModel(Identifier id, CallbackInfoReturnable<JsonUnbakedModel> cir) {
+		ModelLoaderTracker.CURRENT_JSON_ID.get().set(null);
 	}
 }
