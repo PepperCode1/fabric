@@ -38,9 +38,9 @@ import net.minecraft.util.math.Direction;
 import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadView;
-import net.fabricmc.fabric.impl.client.indigo.renderer.RenderMaterialImpl;
 import net.fabricmc.fabric.impl.client.indigo.renderer.helper.GeometryHelper;
 import net.fabricmc.fabric.impl.client.indigo.renderer.helper.NormalHelper;
+import net.fabricmc.fabric.impl.client.indigo.renderer.material.RenderMaterialImpl;
 
 /**
  * Base class for all quads / quad makers. Handles the ugly bits
@@ -232,7 +232,7 @@ public class QuadViewImpl implements QuadView {
 	}
 
 	@Override
-	public final RenderMaterialImpl.Value material() {
+	public final RenderMaterialImpl material() {
 		return EncodingFormat.material(data[baseIndex + HEADER_BITS]);
 	}
 

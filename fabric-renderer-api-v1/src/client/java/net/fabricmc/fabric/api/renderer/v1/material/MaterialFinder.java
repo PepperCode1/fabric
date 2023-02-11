@@ -28,7 +28,7 @@ import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
  *
  * <p>Must be obtained via {@link Renderer#materialFinder()}.
  */
-public interface MaterialFinder {
+public interface MaterialFinder extends MaterialView {
 	/**
 	 * Defines how sprite pixels will be blended with the scene.
 	 * Accepts {link @BlockRenderLayer} values and blending behavior
@@ -173,6 +173,24 @@ public interface MaterialFinder {
 	}
 
 	/**
+	 * Resets this instance to default values. Values will match those
+	 * in effect when an instance is newly obtained via {@link Renderer#materialFinder()}.
+	 */
+	MaterialFinder clear();
+
+	/**
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default MaterialFinder copyFrom(MaterialView material) {
+		blendMode(material.blendMode());
+		disableColorIndex(material.disableColorIndex());
+		emissive(material.emissive());
+		disableDiffuse(material.disableDiffuse());
+		disableAo(material.disableAo());
+		return this;
+	}
+
+	/**
 	 * Returns the standard material encoding all
 	 * of the current settings in this finder. The settings in
 	 * this finder are not changed.
@@ -182,10 +200,4 @@ public interface MaterialFinder {
 	 * may or may not cache standard material instances.
 	 */
 	RenderMaterial find();
-
-	/**
-	 * Resets this instance to default values. Values will match those
-	 * in effect when an instance is newly obtained via {@link Renderer#materialFinder()}.
-	 */
-	MaterialFinder clear();
 }

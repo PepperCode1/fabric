@@ -307,7 +307,6 @@ public interface QuadView {
 	 * but the standard Minecraft renderer will not use them.
 	 */
 	default BakedQuad toBakedQuad(Sprite sprite) {
-		// TODO material inspection: set shade as !disableDiffuse
-		return toBakedQuad(sprite, true);
+		return toBakedQuad(sprite, !material().disableDiffuse());
 	}
 }
