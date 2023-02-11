@@ -42,111 +42,6 @@ public interface QuadView {
 	int VANILLA_QUAD_STRIDE = VANILLA_VERTEX_STRIDE * 4;
 
 	/**
-	 * Reads baked vertex data and outputs standard baked quad
-	 * vertex data in the given array and location.
-	 *
-	 * @param spriteIndex The sprite to be used for the quad.
-	 * Behavior for values &gt; 0 is currently undefined.
-	 *
-	 * @param target Target array for the baked quad data.
-	 *
-	 * @param targetIndex Starting position in target array - array must have
-	 * at least 28 elements available at this index.
-	 *
-	 * @param isItem If true, will output vertex normals. Otherwise will output
-	 * lightmaps, per Minecraft vertex formats for baked models.
-	 */
-	void toVanilla(int spriteIndex, int[] target, int targetIndex, boolean isItem);
-
-	/**
-	 * Extracts all quad properties except material to the given {@link MutableQuadView} instance.
-	 * Must be used before calling {link QuadEmitter#emit()} on the target instance.
-	 * Meant for re-texturing, analysis and static transformation use cases.
-	 */
-	void copyTo(MutableQuadView target);
-
-	/**
-	 * Retrieves the material serialized with the quad.
-	 */
-	RenderMaterial material();
-
-	/**
-	 * Retrieves the quad color index serialized with the quad.
-	 */
-	int colorIndex();
-
-	/**
-	 * Equivalent to {@link BakedQuad#getFace()}. This is the face used for vanilla lighting
-	 * calculations and will be the block face to which the quad is most closely aligned. Always
-	 * the same as cull face for quads that are on a block face, but never null.
-	 */
-	@NotNull
-	Direction lightFace();
-
-	/**
-	 * If non-null, quad should not be rendered in-world if the
-	 * opposite face of a neighbor block occludes it.
-	 *
-	 * @see MutableQuadView#cullFace(Direction)
-	 */
-	@Nullable Direction cullFace();
-
-	/**
-	 * See {@link MutableQuadView#nominalFace(Direction)}.
-	 */
-	Direction nominalFace();
-
-	/**
-	 * Normal of the quad as implied by geometry. Will be invalid
-	 * if quad vertices are not co-planar.  Typically computed lazily
-	 * on demand and not encoded.
-	 *
-	 * <p>Not typically needed by models. Exposed to enable standard lighting
-	 * utility functions for use by renderers.
-	 */
-	Vector3f faceNormal();
-
-	/**
-	 * Generates a new BakedQuad instance with texture
-	 * coordinates and colors from the given sprite.
-	 *
-	 * @param spriteIndex The sprite to be used for the quad.
-	 * Behavior for {@code spriteIndex > 0} is currently undefined.
-	 *
-	 * @param sprite  {@link MutableQuadView} does not serialize sprites
-	 * so the sprite must be provided by the caller.
-	 *
-	 * @param isItem If true, will output vertex normals. Otherwise will output
-	 * lightmaps, per Minecraft vertex formats for baked models.
-	 *
-	 * @return A new baked quad instance with the closest-available appearance
-	 * supported by vanilla features. Will retain emissive light maps, for example,
-	 * but the standard Minecraft renderer will not use them.
-	 */
-	default BakedQuad toBakedQuad(int spriteIndex, Sprite sprite, boolean isItem) {
-		int[] vertexData = new int[VANILLA_QUAD_STRIDE];
-		toVanilla(spriteIndex, vertexData, 0, isItem);
-		return new BakedQuad(vertexData, colorIndex(), lightFace(), sprite, true /* TODO:20w09a check me */);
-	}
-
-	/**
-	 * Retrieves the integer tag encoded with this quad via {@link MutableQuadView#tag(int)}.
-	 * Will return zero if no tag was set.  For use by models.
-	 */
-	int tag();
-
-	/**
-	 * Pass a non-null target to avoid allocation - will be returned with values.
-	 * Otherwise returns a new instance.
-	 */
-	Vector3f copyPos(int vertexIndex, @Nullable Vector3f target);
-
-	/**
-	 * Convenience: access x, y, z by index 0-2.
-	 */
-	float posByIndex(int vertexIndex, int coordinateIndex);
-
-	/**
 	 * Geometric position, x coordinate.
 	 */
 	float x(int vertexIndex);
@@ -162,17 +57,83 @@ public interface QuadView {
 	float z(int vertexIndex);
 
 	/**
+	 * Convenience: access x, y, z by index 0-2.
+	 */
+	float posByIndex(int vertexIndex, int coordinateIndex);
+
+	/**
+	 * Pass a non-null target to avoid allocation - will be returned with values.
+	 * Otherwise returns a new instance.
+	 */
+	Vector3f copyPos(int vertexIndex, @Nullable Vector3f target);
+
+	/**
+	 * Retrieve vertex color.
+	 *
+	 * <p>Use {@link #vertexColor(int)} instead.
+	 */
+	@Deprecated
+	default int spriteColor(int vertexIndex, int spriteIndex) {
+		return vertexColor(vertexIndex);
+	}
+
+	/**
+	 * Retrieve vertex color.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default int vertexColor(int vertexIndex) {
+		return spriteColor(vertexIndex, 0);
+	}
+
+	/**
+	 * Retrieve horizontal sprite atlas coordinates.
+	 *
+	 * <p>Use {@link #u(int)} instead.
+	 */
+	@Deprecated
+	default float spriteU(int vertexIndex, int spriteIndex) {
+		return u(vertexIndex);
+	}
+
+	/**
+	 * Retrieve horizontal sprite atlas coordinates.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default float u(int vertexIndex) {
+		return spriteU(vertexIndex, 0);
+	}
+
+	/**
+	 * Retrieve vertical sprite atlas coordinates.
+	 *
+	 * <p>Use {@link #v(int)} instead.
+	 */
+	@Deprecated
+	default float spriteV(int vertexIndex, int spriteIndex) {
+		return v(vertexIndex);
+	}
+
+	/**
+	 * Retrieve vertical sprite atlas coordinates.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default float v(int vertexIndex) {
+		return spriteV(vertexIndex, 0);
+	}
+
+	/**
+	 * Minimum block brightness. Zero if not set.
+	 */
+	int lightmap(int vertexIndex);
+
+	/**
 	 * If false, no vertex normal was provided.
 	 * Lighting should use face normal in that case.
 	 */
 	boolean hasNormal(int vertexIndex);
-
-	/**
-	 * Pass a non-null target to avoid allocation - will be returned with values.
-	 * Otherwise returns a new instance. Returns null if normal not present.
-	 */
-	@Nullable
-	Vector3f copyNormal(int vertexIndex, @Nullable Vector3f target);
 
 	/**
 	 * Will return {@link Float#NaN} if normal not present.
@@ -190,22 +151,163 @@ public interface QuadView {
 	float normalZ(int vertexIndex);
 
 	/**
-	 * Minimum block brightness. Zero if not set.
+	 * Pass a non-null target to avoid allocation - will be returned with values.
+	 * Otherwise returns a new instance. Returns null if normal not present.
 	 */
-	int lightmap(int vertexIndex);
+	@Nullable
+	Vector3f copyNormal(int vertexIndex, @Nullable Vector3f target);
 
 	/**
-	 * Retrieve vertex color.
+	 * If non-null, quad should not be rendered in-world if the
+	 * opposite face of a neighbor block occludes it.
+	 *
+	 * @see MutableQuadView#cullFace(Direction)
 	 */
-	int spriteColor(int vertexIndex, int spriteIndex);
+	@Nullable
+	Direction cullFace();
 
 	/**
-	 * Retrieve horizontal sprite atlas coordinates.
+	 * Equivalent to {@link BakedQuad#getFace()}. This is the face used for vanilla lighting
+	 * calculations and will be the block face to which the quad is most closely aligned. Always
+	 * the same as cull face for quads that are on a block face, but never null.
 	 */
-	float spriteU(int vertexIndex, int spriteIndex);
+	@NotNull
+	Direction lightFace();
 
 	/**
-	 * Retrieve vertical sprite atlas coordinates.
+	 * See {@link MutableQuadView#nominalFace(Direction)}.
 	 */
-	float spriteV(int vertexIndex, int spriteIndex);
+	Direction nominalFace();
+
+	/**
+	 * Normal of the quad as implied by geometry. Will be invalid
+	 * if quad vertices are not co-planar. Typically computed lazily
+	 * on demand and not encoded.
+	 *
+	 * <p>Not typically needed by models. Exposed to enable standard lighting
+	 * utility functions for use by renderers.
+	 */
+	Vector3f faceNormal();
+
+	/**
+	 * Retrieves the material serialized with the quad.
+	 */
+	RenderMaterial material();
+
+	/**
+	 * Retrieves the quad color index serialized with the quad.
+	 */
+	int colorIndex();
+
+	/**
+	 * Retrieves the integer tag encoded with this quad via {@link MutableQuadView#tag(int)}.
+	 * Will return zero if no tag was set. For use by models.
+	 */
+	int tag();
+
+	/**
+	 * Extracts all quad properties except material to the given {@link MutableQuadView} instance.
+	 * Must be used before calling {link QuadEmitter#emit()} on the target instance.
+	 * Meant for re-texturing, analysis and static transformation use cases.
+	 */
+	void copyTo(MutableQuadView target);
+
+	/**
+	 * Reads baked vertex data and outputs standard baked quad
+	 * vertex data in the given array and location.
+	 *
+	 * <p>Use {@link #toVanilla(int[], int)} instead.
+	 *
+	 * @param spriteIndex The sprite to be used for the quad.
+	 * Behavior for values &gt; 0 is currently undefined.
+	 *
+	 * @param target Target array for the baked quad data.
+	 *
+	 * @param targetIndex Starting position in target array - array must have
+	 * at least 28 elements available at this index.
+	 *
+	 * @param isItem If true, will output vertex normals. Otherwise will output
+	 * lightmaps, per Minecraft vertex formats for baked models.
+	 */
+	@Deprecated
+	default void toVanilla(int spriteIndex, int[] target, int targetIndex, boolean isItem) {
+		toVanilla(target, targetIndex);
+	}
+
+	/**
+	 * Reads baked vertex data and outputs standard baked quad
+	 * vertex data in the given array and location.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 *
+	 * @param target Target array for the baked quad data.
+	 *
+	 * @param targetIndex Starting position in target array - array must have
+	 * at least 28 elements available at this index.
+	 */
+	default void toVanilla(int[] target, int targetIndex) {
+		toVanilla(0, target, targetIndex, false);
+	}
+
+	/**
+	 * Generates a new BakedQuad instance with texture
+	 * coordinates and colors from the given sprite.
+	 *
+	 * <p>Use {@link #toBakedQuad(Sprite)}> instead.
+	 *
+	 * @param spriteIndex The sprite to be used for the quad.
+	 * Behavior for {@code spriteIndex > 0} is currently undefined.
+	 *
+	 * @param sprite {@link MutableQuadView} does not serialize sprites
+	 * so the sprite must be provided by the caller.
+	 *
+	 * @param isItem If true, will output vertex normals. Otherwise will output
+	 * lightmaps, per Minecraft vertex formats for baked models.
+	 *
+	 * @return A new baked quad instance with the closest-available appearance
+	 * supported by vanilla features. Will retain emissive light maps, for example,
+	 * but the standard Minecraft renderer will not use them.
+	 */
+	@Deprecated
+	default BakedQuad toBakedQuad(int spriteIndex, Sprite sprite, boolean isItem) {
+		return toBakedQuad(sprite, true);
+	}
+
+	/**
+	 * Generates a new BakedQuad instance with texture
+	 * coordinates and colors from the given sprite.
+	 *
+	 * @param sprite {@link MutableQuadView} does not serialize sprites
+	 * so the sprite must be provided by the caller.
+	 *
+	 * @param shade Shade value that the resulting BakedQuad should use.
+	 *
+	 * @return A new baked quad instance with the closest-available appearance
+	 * supported by vanilla features. Will retain emissive light maps, for example,
+	 * but the standard Minecraft renderer will not use them.
+	 */
+	default BakedQuad toBakedQuad(Sprite sprite, boolean shade) {
+		int[] vertexData = new int[VANILLA_QUAD_STRIDE];
+		toVanilla(vertexData, 0);
+		return new BakedQuad(vertexData, colorIndex(), lightFace(), sprite, shade);
+	}
+
+	/**
+	 * Generates a new BakedQuad instance with texture
+	 * coordinates and colors from the given sprite.
+	 *
+	 * <p>Similar to {@link #toBakedQuad(Sprite, boolean)}, but
+	 * automatically retrieves the shade value from this quad's material.
+	 *
+	 * @param sprite {@link MutableQuadView} does not serialize sprites
+	 * so the sprite must be provided by the caller.
+	 *
+	 * @return A new baked quad instance with the closest-available appearance
+	 * supported by vanilla features. Will retain emissive light maps, for example,
+	 * but the standard Minecraft renderer will not use them.
+	 */
+	default BakedQuad toBakedQuad(Sprite sprite) {
+		// TODO material inspection: set shade as !disableDiffuse
+		return toBakedQuad(sprite, true);
+	}
 }

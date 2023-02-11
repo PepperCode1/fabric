@@ -30,7 +30,7 @@ import static net.fabricmc.fabric.impl.client.indigo.renderer.mesh.EncodingForma
 import static net.fabricmc.fabric.impl.client.indigo.renderer.mesh.EncodingFormat.VERTEX_Y;
 import static net.fabricmc.fabric.impl.client.indigo.renderer.mesh.EncodingFormat.VERTEX_Z;
 
-import com.google.common.base.Preconditions;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 import net.minecraft.util.math.Direction;
@@ -114,76 +114,8 @@ public class QuadViewImpl implements QuadView {
 		}
 	}
 
-	@Override
-	public final void toVanilla(int textureIndex, int[] target, int targetIndex, boolean isItem) {
-		System.arraycopy(data, baseIndex + VERTEX_X, target, targetIndex, QUAD_STRIDE);
-	}
-
-	@Override
-	public final RenderMaterialImpl.Value material() {
-		return EncodingFormat.material(data[baseIndex + HEADER_BITS]);
-	}
-
-	@Override
-	public final int colorIndex() {
-		return data[baseIndex + HEADER_COLOR_INDEX];
-	}
-
-	@Override
-	public final int tag() {
-		return data[baseIndex + HEADER_TAG];
-	}
-
-	@Override
-	public final Direction lightFace() {
-		computeGeometry();
-		return EncodingFormat.lightFace(data[baseIndex + HEADER_BITS]);
-	}
-
-	@Override
-	public final Direction cullFace() {
-		return EncodingFormat.cullFace(data[baseIndex + HEADER_BITS]);
-	}
-
-	@Override
-	public final Direction nominalFace() {
-		return nominalFace;
-	}
-
-	@Override
-	public final Vector3f faceNormal() {
-		computeGeometry();
-		return faceNormal;
-	}
-
-	@Override
-	public void copyTo(MutableQuadView target) {
-		computeGeometry();
-
-		final MutableQuadViewImpl quad = (MutableQuadViewImpl) target;
-		// copy everything except the material
-		RenderMaterial material = quad.material();
-		System.arraycopy(data, baseIndex, quad.data, quad.baseIndex, EncodingFormat.TOTAL_STRIDE);
-		quad.material(material);
-		quad.faceNormal.set(faceNormal.x(), faceNormal.y(), faceNormal.z());
-		quad.nominalFace = this.nominalFace;
-		quad.isGeometryInvalid = false;
-	}
-
-	@Override
-	public Vector3f copyPos(int vertexIndex, Vector3f target) {
-		if (target == null) {
-			target = new Vector3f();
-		}
-
-		final int index = baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_X;
-		target.set(Float.intBitsToFloat(data[index]), Float.intBitsToFloat(data[index + 1]), Float.intBitsToFloat(data[index + 2]));
-		return target;
-	}
-
-	@Override
-	public float posByIndex(int vertexIndex, int coordinateIndex) {
-		return Float.intBitsToFloat(data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_X + coordinateIndex]);
+	public boolean hasShade() {
+		return !material().disableDiffuse();
 	}
 
 	@Override
@@ -202,27 +134,48 @@ public class QuadViewImpl implements QuadView {
 	}
 
 	@Override
+	public float posByIndex(int vertexIndex, int coordinateIndex) {
+		return Float.intBitsToFloat(data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_X + coordinateIndex]);
+	}
+
+	@Override
+	public Vector3f copyPos(int vertexIndex, Vector3f target) {
+		if (target == null) {
+			target = new Vector3f();
+		}
+
+		final int index = baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_X;
+		target.set(Float.intBitsToFloat(data[index]), Float.intBitsToFloat(data[index + 1]), Float.intBitsToFloat(data[index + 2]));
+		return target;
+	}
+
+	@Override
+	public int vertexColor(int vertexIndex) {
+		return data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_COLOR];
+	}
+
+	@Override
+	public float u(int vertexIndex) {
+		return Float.intBitsToFloat(data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_U]);
+	}
+
+	@Override
+	public float v(int vertexIndex) {
+		return Float.intBitsToFloat(data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_V]);
+	}
+
+	@Override
+	public int lightmap(int vertexIndex) {
+		return data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_LIGHTMAP];
+	}
+
+	@Override
 	public boolean hasNormal(int vertexIndex) {
 		return (normalFlags() & (1 << vertexIndex)) != 0;
 	}
 
 	protected final int normalIndex(int vertexIndex) {
 		return baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_NORMAL;
-	}
-
-	@Override
-	public Vector3f copyNormal(int vertexIndex, Vector3f target) {
-		if (hasNormal(vertexIndex)) {
-			if (target == null) {
-				target = new Vector3f();
-			}
-
-			final int normal = data[normalIndex(vertexIndex)];
-			target.set(NormalHelper.getPackedNormalComponent(normal, 0), NormalHelper.getPackedNormalComponent(normal, 1), NormalHelper.getPackedNormalComponent(normal, 2));
-			return target;
-		} else {
-			return null;
-		}
 	}
 
 	@Override
@@ -241,32 +194,74 @@ public class QuadViewImpl implements QuadView {
 	}
 
 	@Override
-	public int lightmap(int vertexIndex) {
-		return data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_LIGHTMAP];
+	public Vector3f copyNormal(int vertexIndex, Vector3f target) {
+		if (hasNormal(vertexIndex)) {
+			if (target == null) {
+				target = new Vector3f();
+			}
+
+			final int normal = data[normalIndex(vertexIndex)];
+			target.set(NormalHelper.getPackedNormalComponent(normal, 0), NormalHelper.getPackedNormalComponent(normal, 1), NormalHelper.getPackedNormalComponent(normal, 2));
+			return target;
+		} else {
+			return null;
+		}
 	}
 
 	@Override
-	public int spriteColor(int vertexIndex, int spriteIndex) {
-		Preconditions.checkArgument(spriteIndex == 0, "Unsupported sprite index: %s", spriteIndex);
-
-		return data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_COLOR];
+	public final Direction cullFace() {
+		return EncodingFormat.cullFace(data[baseIndex + HEADER_BITS]);
 	}
 
 	@Override
-	public float spriteU(int vertexIndex, int spriteIndex) {
-		Preconditions.checkArgument(spriteIndex == 0, "Unsupported sprite index: %s", spriteIndex);
-
-		return Float.intBitsToFloat(data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_U]);
+	@NotNull
+	public final Direction lightFace() {
+		computeGeometry();
+		return EncodingFormat.lightFace(data[baseIndex + HEADER_BITS]);
 	}
 
 	@Override
-	public float spriteV(int vertexIndex, int spriteIndex) {
-		Preconditions.checkArgument(spriteIndex == 0, "Unsupported sprite index: %s", spriteIndex);
-
-		return Float.intBitsToFloat(data[baseIndex + vertexIndex * VERTEX_STRIDE + VERTEX_V]);
+	public final Direction nominalFace() {
+		return nominalFace;
 	}
 
-	public boolean hasShade() {
-		return !material().disableDiffuse(0);
+	@Override
+	public final Vector3f faceNormal() {
+		computeGeometry();
+		return faceNormal;
+	}
+
+	@Override
+	public final RenderMaterialImpl.Value material() {
+		return EncodingFormat.material(data[baseIndex + HEADER_BITS]);
+	}
+
+	@Override
+	public final int colorIndex() {
+		return data[baseIndex + HEADER_COLOR_INDEX];
+	}
+
+	@Override
+	public final int tag() {
+		return data[baseIndex + HEADER_TAG];
+	}
+
+	@Override
+	public void copyTo(MutableQuadView target) {
+		computeGeometry();
+
+		final MutableQuadViewImpl quad = (MutableQuadViewImpl) target;
+		// copy everything except the material
+		RenderMaterial material = quad.material();
+		System.arraycopy(data, baseIndex, quad.data, quad.baseIndex, EncodingFormat.TOTAL_STRIDE);
+		quad.material(material);
+		quad.faceNormal.set(faceNormal.x(), faceNormal.y(), faceNormal.z());
+		quad.nominalFace = this.nominalFace;
+		quad.isGeometryInvalid = false;
+	}
+
+	@Override
+	public final void toVanilla(int[] target, int targetIndex) {
+		System.arraycopy(data, baseIndex + VERTEX_X, target, targetIndex, QUAD_STRIDE);
 	}
 }

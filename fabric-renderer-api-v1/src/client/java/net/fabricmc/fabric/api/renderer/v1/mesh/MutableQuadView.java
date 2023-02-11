@@ -40,32 +40,32 @@ import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 public interface MutableQuadView extends QuadView {
 	/**
 	 * Causes texture to appear with no rotation.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 */
 	int BAKE_ROTATE_NONE = 0;
 
 	/**
 	 * Causes texture to appear rotated 90 deg. clockwise relative to nominal face.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 */
 	int BAKE_ROTATE_90 = 1;
 
 	/**
 	 * Causes texture to appear rotated 180 deg. relative to nominal face.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 */
 	int BAKE_ROTATE_180 = 2;
 
 	/**
 	 * Causes texture to appear rotated 270 deg. clockwise relative to nominal face.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 */
 	int BAKE_ROTATE_270 = 3;
 
 	/**
 	 * When enabled, texture coordinate are assigned based on vertex position.
 	 * Any existing uv coordinates will be replaced.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 *
 	 * <p>UV lock always derives texture coordinates based on nominal face, even
 	 * when the quad is not co-planar with that face, and the result is
@@ -79,7 +79,7 @@ public interface MutableQuadView extends QuadView {
 	 * flipped as part of baking. Can be useful for some randomization
 	 * and texture mapping scenarios. Results are different from what
 	 * can be obtained via rotation and both can be applied.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 */
 	int BAKE_FLIP_U = 8;
 
@@ -93,15 +93,171 @@ public interface MutableQuadView extends QuadView {
 	 * with conventional Minecraft model format. This is scaled to 0-1 during
 	 * baking before interpolation. Model loaders that already have 0-1 coordinates
 	 * can avoid wasteful multiplication/division by passing 0-1 coordinates directly.
-	 * Pass in bakeFlags parameter to {@link #spriteBake(int, Sprite, int)}.
+	 * Pass in bakeFlags parameter to {@link #spriteBake(Sprite, int)}.
 	 */
 	int BAKE_NORMALIZED = 32;
 
 	/**
-	 * Assigns a different material to this quad. Useful for transformation of
-	 * existing meshes because lighting and texture blending are controlled by material.
+	 * Sets the geometric vertex position for the given vertex,
+	 * relative to block origin. (0,0,0).  Minecraft rendering is designed
+	 * for models that fit within a single block space and is recommended
+	 * that coordinates remain in the 0-1 range, with multi-block meshes
+	 * split into multiple per-block models.
 	 */
-	MutableQuadView material(RenderMaterial material);
+	MutableQuadView pos(int vertexIndex, float x, float y, float z);
+
+	/**
+	 * Same as {@link #pos(int, float, float, float)} but accepts vector type.
+	 */
+	default MutableQuadView pos(int vertexIndex, Vector3f vec) {
+		return pos(vertexIndex, vec.x(), vec.y(), vec.z());
+	}
+
+	/**
+	 * Set sprite color. Behavior for {@code spriteIndex > 0} is currently undefined.
+	 *
+	 * <p>Use {@link #vertexColor(int, int)} instead.
+	 */
+	@Deprecated
+	default MutableQuadView spriteColor(int vertexIndex, int spriteIndex, int color) {
+		return vertexColor(vertexIndex, color);
+	}
+
+	/**
+	 * Set vertex color.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default MutableQuadView vertexColor(int vertexIndex, int color) {
+		return spriteColor(vertexIndex, 0, color);
+	}
+
+	/**
+	 * Convenience: set sprite color for all vertices at once. Behavior for {@code spriteIndex > 0} is currently undefined.
+	 *
+	 * <p>Use {@link #vertexColor(int, int, int, int)} instead.
+	 */
+	@Deprecated
+	default MutableQuadView spriteColor(int spriteIndex, int c0, int c1, int c2, int c3) {
+		vertexColor(c0, c1, c2, c3);
+		return this;
+	}
+
+	/**
+	 * Convenience: set vertex color for all vertices at once.
+	 */
+	default MutableQuadView vertexColor(int c0, int c1, int c2, int c3) {
+		vertexColor(0, c0);
+		vertexColor(1, c1);
+		vertexColor(2, c2);
+		vertexColor(3, c3);
+		return this;
+	}
+
+	/**
+	 * Set sprite atlas coordinates. Behavior for {@code spriteIndex > 0} is currently undefined.
+	 *
+	 * <p>Use {@link #uv(int, float, float)} instead.
+	 */
+	@Deprecated
+	default MutableQuadView sprite(int vertexIndex, int spriteIndex, float u, float v) {
+		return uv(vertexIndex, u, v);
+	}
+
+	/**
+	 * Set sprite atlas coordinates.
+	 */
+	default MutableQuadView uv(int vertexIndex, float u, float v) {
+		return sprite(vertexIndex, 0, u, v);
+	}
+
+	/**
+	 * Set sprite atlas coordinates. Behavior for {@code spriteIndex > 0} is currently undefined.
+	 *
+	 * <p>Use {@link #uv(int, Vec2f)} instead.
+	 *
+	 * <p>Only use this function if you already have a {@link Vec2f}.
+	 * Otherwise, see {@link MutableQuadView#sprite(int, int, float, float)}.
+	 */
+	@Deprecated
+	default MutableQuadView sprite(int vertexIndex, int spriteIndex, Vec2f uv) {
+		return uv(vertexIndex, uv);
+	}
+
+	/**
+	 * Set sprite atlas coordinates.
+	 *
+	 * <p>Only use this function if you already have a {@link Vec2f}.
+	 * Otherwise, see {@link MutableQuadView#uv(int, float, float)}.
+	 */
+	default MutableQuadView uv(int vertexIndex, Vec2f uv) {
+		return uv(vertexIndex, uv.x, uv.y);
+	}
+
+	/**
+	 * Assigns sprite atlas u,v coordinates to this quad for the given sprite.
+	 * Can handle UV locking, rotation, interpolation, etc. Control this behavior
+	 * by passing additive combinations of the BAKE_ flags defined in this interface.
+	 * Behavior for {@code spriteIndex > 0} is currently undefined.
+	 *
+	 * <p>Use {@link #spriteBake(Sprite, int)} instead.
+	 */
+	@Deprecated
+	default MutableQuadView spriteBake(int spriteIndex, Sprite sprite, int bakeFlags) {
+		return spriteBake(sprite, bakeFlags);
+	}
+
+	/**
+	 * Assigns sprite atlas u,v coordinates to this quad for the given sprite.
+	 * Can handle UV locking, rotation, interpolation, etc. Control this behavior
+	 * by passing additive combinations of the BAKE_ flags defined in this interface.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default MutableQuadView spriteBake(Sprite sprite, int bakeFlags) {
+		return spriteBake(0, sprite, bakeFlags);
+	}
+
+	/**
+	 * Accept vanilla lightmap values.  Input values will override lightmap values
+	 * computed from world state if input values are higher. Exposed for completeness
+	 * but some rendering implementations with non-standard lighting model may not honor it.
+	 *
+	 * <p>For emissive rendering, it is better to use {@link MaterialFinder#emissive(boolean)}.
+	 */
+	MutableQuadView lightmap(int vertexIndex, int lightmap);
+
+	/**
+	 * Convenience: set lightmap for all vertices at once.
+	 *
+	 * <p>For emissive rendering, it is better to use {@link MaterialFinder#emissive(boolean)}.
+	 * See {@link #lightmap(int, int)}.
+	 */
+	default MutableQuadView lightmap(int b0, int b1, int b2, int b3) {
+		lightmap(0, b0);
+		lightmap(1, b1);
+		lightmap(2, b2);
+		lightmap(3, b3);
+		return this;
+	}
+
+	/**
+	 * Adds a vertex normal. Models that have per-vertex
+	 * normals should include them to get correct lighting when it matters.
+	 * Computed face normal is used when no vertex normal is provided.
+	 *
+	 * <p>{@link Renderer} implementations should honor vertex normals for
+	 * diffuse lighting - modifying vertex color(s) or packing normals in the vertex
+	 * buffer as appropriate for the rendering method/vertex format in effect.
+	 */
+	MutableQuadView normal(int vertexIndex, float x, float y, float z);
+
+	/**
+	 * Same as {@link #normal(int, float, float, float)} but accepts vector type.
+	 */
+	default MutableQuadView normal(int vertexIndex, Vector3f vec) {
+		return normal(vertexIndex, vec.x(), vec.y(), vec.z());
+	}
 
 	/**
 	 * If non-null, quad is coplanar with a block face which, if known, simplifies
@@ -138,30 +294,16 @@ public interface MutableQuadView extends QuadView {
 	MutableQuadView nominalFace(Direction face);
 
 	/**
+	 * Assigns a different material to this quad. Useful for transformation of
+	 * existing meshes because lighting and texture blending are controlled by material.
+	 */
+	MutableQuadView material(RenderMaterial material);
+
+	/**
 	 * Value functions identically to {@link BakedQuad#getColorIndex()} and is
 	 * used by renderer / model builder in same way. Default value is -1.
 	 */
 	MutableQuadView colorIndex(int colorIndex);
-
-	/**
-	 * Enables bulk vertex data transfer using the standard Minecraft vertex formats.
-	 * This method should be performant whenever caller's vertex representation makes it feasible.
-	 *
-	 * <p>Calling this method does not emit the quad.
-	 *
-	 * @deprecated Use {@link #fromVanilla(BakedQuad, RenderMaterial, Direction)}
-	 * which has better encapsulation and removed outdated item flag
-	 */
-	@Deprecated
-	MutableQuadView fromVanilla(int[] quadData, int startIndex, boolean isItem);
-
-	/**
-	 * Enables bulk vertex data transfer using the standard Minecraft vertex formats.
-	 * This method should be performant whenever caller's vertex representation makes it feasible.
-	 *
-	 * <p>Calling this method does not emit the quad.
-	 */
-	MutableQuadView fromVanilla(BakedQuad quad, RenderMaterial material, Direction cullFace);
 
 	/**
 	 * Encodes an integer tag with this quad that can later be retrieved via
@@ -171,98 +313,35 @@ public interface MutableQuadView extends QuadView {
 	MutableQuadView tag(int tag);
 
 	/**
-	 * Sets the geometric vertex position for the given vertex,
-	 * relative to block origin. (0,0,0).  Minecraft rendering is designed
-	 * for models that fit within a single block space and is recommended
-	 * that coordinates remain in the 0-1 range, with multi-block meshes
-	 * split into multiple per-block models.
-	 */
-	MutableQuadView pos(int vertexIndex, float x, float y, float z);
-
-	/**
-	 * Same as {@link #pos(int, float, float, float)} but accepts vector type.
-	 */
-	default MutableQuadView pos(int vertexIndex, Vector3f vec) {
-		return pos(vertexIndex, vec.x(), vec.y(), vec.z());
-	}
-
-	/**
-	 * Adds a vertex normal. Models that have per-vertex
-	 * normals should include them to get correct lighting when it matters.
-	 * Computed face normal is used when no vertex normal is provided.
+	 * Enables bulk vertex data transfer using the standard Minecraft vertex formats.
+	 * This method should be performant whenever caller's vertex representation makes it feasible.
 	 *
-	 * <p>{@link Renderer} implementations should honor vertex normals for
-	 * diffuse lighting - modifying vertex color(s) or packing normals in the vertex
-	 * buffer as appropriate for the rendering method/vertex format in effect.
-	 */
-	MutableQuadView normal(int vertexIndex, float x, float y, float z);
-
-	/**
-	 * Same as {@link #normal(int, float, float, float)} but accepts vector type.
-	 */
-	default MutableQuadView normal(int vertexIndex, Vector3f vec) {
-		return normal(vertexIndex, vec.x(), vec.y(), vec.z());
-	}
-
-	/**
-	 * Accept vanilla lightmap values.  Input values will override lightmap values
-	 * computed from world state if input values are higher. Exposed for completeness
-	 * but some rendering implementations with non-standard lighting model may not honor it.
+	 * <p>Calling this method does not emit the quad.
 	 *
-	 * <p>For emissive rendering, it is better to use {@link MaterialFinder#emissive(int, boolean)}.
+	 * @deprecated Use {@link #fromVanilla(int[], int)} or {@link #fromVanilla(BakedQuad, RenderMaterial, Direction)} instead.
 	 */
-	MutableQuadView lightmap(int vertexIndex, int lightmap);
+	@Deprecated
+	default MutableQuadView fromVanilla(int[] quadData, int startIndex, boolean isItem) {
+		return fromVanilla(quadData, startIndex);
+	}
 
 	/**
-	 * Convenience: set lightmap for all vertices at once.
+	 * Enables bulk vertex data transfer using the standard Minecraft vertex formats.
+	 * This method should be performant whenever caller's vertex representation makes it feasible.
 	 *
-	 * <p>For emissive rendering, it is better to use {@link MaterialFinder#emissive(int, boolean)}.
-	 * See {@link #lightmap(int, int)}.
-	 */
-	default MutableQuadView lightmap(int b0, int b1, int b2, int b3) {
-		lightmap(0, b0);
-		lightmap(1, b1);
-		lightmap(2, b2);
-		lightmap(3, b3);
-		return this;
-	}
-
-	/**
-	 * Set sprite color. Behavior for {@code spriteIndex > 0} is currently undefined.
-	 */
-	MutableQuadView spriteColor(int vertexIndex, int spriteIndex, int color);
-
-	/**
-	 * Convenience: set sprite color for all vertices at once. Behavior for {@code spriteIndex > 0} is currently undefined.
-	 */
-	default MutableQuadView spriteColor(int spriteIndex, int c0, int c1, int c2, int c3) {
-		spriteColor(0, spriteIndex, c0);
-		spriteColor(1, spriteIndex, c1);
-		spriteColor(2, spriteIndex, c2);
-		spriteColor(3, spriteIndex, c3);
-		return this;
-	}
-
-	/**
-	 * Set sprite atlas coordinates. Behavior for {@code spriteIndex > 0} is currently undefined.
-	 */
-	MutableQuadView sprite(int vertexIndex, int spriteIndex, float u, float v);
-
-	/**
-	 * Set sprite atlas coordinates. Behavior for {@code spriteIndex > 0} is currently undefined.
+	 * <p>Calling this method does not emit the quad.
 	 *
-	 * <p>Only use this function if you already have a {@link Vec2f}.
-	 * Otherwise, see {@link MutableQuadView#sprite(int, int, float, float)}.
+	 * @apiNote The default implementation will be removed in the next breaking release.
 	 */
-	default MutableQuadView sprite(int vertexIndex, int spriteIndex, Vec2f uv) {
-		return sprite(vertexIndex, spriteIndex, uv.x, uv.y);
+	default MutableQuadView fromVanilla(int[] quadData, int startIndex) {
+		return fromVanilla(quadData, startIndex, false);
 	}
 
 	/**
-	 * Assigns sprite atlas u,v coordinates to this quad for the given sprite.
-	 * Can handle UV locking, rotation, interpolation, etc. Control this behavior
-	 * by passing additive combinations of the BAKE_ flags defined in this interface.
-	 * Behavior for {@code spriteIndex > 0} is currently undefined.
+	 * Enables bulk vertex data transfer using the standard Minecraft vertex formats.
+	 * This method should be performant whenever caller's vertex representation makes it feasible.
+	 *
+	 * <p>Calling this method does not emit the quad.
 	 */
-	MutableQuadView spriteBake(int spriteIndex, Sprite sprite, int bakeFlags);
+	MutableQuadView fromVanilla(BakedQuad quad, RenderMaterial material, Direction cullFace);
 }

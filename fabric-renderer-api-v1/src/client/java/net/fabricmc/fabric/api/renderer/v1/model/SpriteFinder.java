@@ -29,7 +29,7 @@ import net.fabricmc.fabric.impl.renderer.SpriteFinderImpl;
  * baked vertex coordinates.  Main use is for {@link Mesh}-based models
  * to generate vanilla quads on demand without tracking and retaining
  * the sprites that were baked into the mesh. In other words, this class
- * supplies the sprite parameter for {@link QuadView#toBakedQuad(int, Sprite, boolean)}.
+ * supplies the sprite parameter for {@link QuadView#toBakedQuad(Sprite)}.
  */
 public interface SpriteFinder {
 	/**
@@ -50,14 +50,34 @@ public interface SpriteFinder {
 	 * <p>Should be reliable for any convex quad or triangle. May fail for non-convex quads.
 	 * Note that all the above refers to u,v coordinates. Geometric vertex does not matter,
 	 * except to the extent it was used to determine u,v.
+	 *
+	 * <p>Use {@link #find(QuadView)} instead.
 	 */
-	Sprite find(QuadView quad, int textureIndex);
+	@Deprecated
+	default Sprite find(QuadView quad, int textureIndex) {
+		return find(quad);
+	}
+
+	/**
+	 * Finds the atlas sprite containing the vertex centroid of the quad.
+	 * Vertex centroid is essentially the mean u,v coordinate - the intent being
+	 * to find a point that is unambiguously inside the sprite (vs on an edge.)
+	 *
+	 * <p>Should be reliable for any convex quad or triangle. May fail for non-convex quads.
+	 * Note that all the above refers to u,v coordinates. Geometric vertex does not matter,
+	 * except to the extent it was used to determine u,v.
+	 *
+	 * @apiNote The default implementation will be removed in the next breaking release.
+	 */
+	default Sprite find(QuadView quad) {
+		return find(quad, 0);
+	}
 
 	/**
 	 * Alternative to {@link #find(QuadView, int)} when vertex centroid is already
 	 * known or unsuitable.  Expects normalized (0-1) coordinates on the atlas texture,
 	 * which should already be the case for u,v values in vanilla baked quads and in
-	 * {@link QuadView} after calling {@link MutableQuadView#spriteBake(int, Sprite, int)}.
+	 * {@link QuadView} after calling {@link MutableQuadView#spriteBake(Sprite, int)}.
 	 *
 	 * <p>Coordinates must be in the sprite interior for reliable results. Generally will
 	 * be easier to use {@link #find(QuadView, int)} unless you know the vertex
