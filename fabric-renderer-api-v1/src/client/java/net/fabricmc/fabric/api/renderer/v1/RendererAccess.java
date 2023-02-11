@@ -23,7 +23,7 @@ import org.jetbrains.annotations.Nullable;
  */
 @Deprecated
 public interface RendererAccess {
-	RendererAccess INSTANCE = new RendererAccess() {};
+	RendererAccess INSTANCE = new RendererAccess() { };
 
 	/**
 	 * Rendering extension mods must implement {@link Renderer} and
