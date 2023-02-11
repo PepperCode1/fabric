@@ -33,7 +33,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Direction;
 
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
-import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MeshBuilder;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadEmitter;
@@ -60,8 +59,8 @@ final class FrameUnbakedModel implements UnbakedModel {
 	public BakedModel bake(Baker baker, Function<SpriteIdentifier, Sprite> textureGetter, ModelBakeSettings rotationContainer, Identifier modelId) {
 		// The renderer api may not have an implementation.
 		// For this reason we will just null check the renderer impl
-		if (RendererAccess.INSTANCE.hasRenderer()) {
-			Renderer renderer = RendererAccess.INSTANCE.getRenderer();
+		if (Renderer.isPresent()) {
+			Renderer renderer = Renderer.get();
 			MeshBuilder builder = renderer.meshBuilder();
 			QuadEmitter emitter = builder.getEmitter();
 			// TODO: Just some random texture to get a missing texture, we should get a proper texture soon

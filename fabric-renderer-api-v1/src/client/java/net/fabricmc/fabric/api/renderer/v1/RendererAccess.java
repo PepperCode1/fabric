@@ -18,13 +18,12 @@ package net.fabricmc.fabric.api.renderer.v1;
 
 import org.jetbrains.annotations.Nullable;
 
-import net.fabricmc.fabric.impl.renderer.RendererAccessImpl;
-
 /**
  * Registration and access for rendering extensions.
  */
+@Deprecated
 public interface RendererAccess {
-	RendererAccess INSTANCE = RendererAccessImpl.INSTANCE;
+	RendererAccess INSTANCE = new RendererAccess() {};
 
 	/**
 	 * Rendering extension mods must implement {@link Renderer} and
@@ -32,18 +31,30 @@ public interface RendererAccess {
 	 *
 	 * <p>Only one {@link Renderer} plug-in can be active in any game instance.
 	 * If a second mod attempts to register this method will throw an UnsupportedOperationException.
+	 *
+	 * <p>Use {@link Renderer#register(Renderer)} instead.
 	 */
-	void registerRenderer(Renderer plugin);
+	default void registerRenderer(Renderer plugin) {
+		Renderer.register(plugin);
+	}
 
 	/**
 	 * Access to the current {@link Renderer} for creating and retrieving model builders
 	 * and materials. Will return null if no render plug in is active.
+	 *
+	 * <p>Use {@link Renderer#get()} instead.
 	 */
 	@Nullable
-	Renderer getRenderer();
+	default Renderer getRenderer() {
+		return Renderer.get();
+	}
 
 	/**
 	 * Performant test for {@link #getRenderer()} != null.
+	 *
+	 * <p>Use {@link Renderer#isPresent()} instead.
 	 */
-	boolean hasRenderer();
+	default boolean hasRenderer() {
+		return Renderer.isPresent();
+	}
 }

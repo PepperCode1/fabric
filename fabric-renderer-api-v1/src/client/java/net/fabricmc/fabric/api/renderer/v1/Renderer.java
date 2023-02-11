@@ -23,6 +23,7 @@ import net.minecraft.util.Identifier;
 import net.fabricmc.fabric.api.renderer.v1.material.MaterialFinder;
 import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MeshBuilder;
+import net.fabricmc.fabric.impl.renderer.RendererHolder;
 
 /**
  * Interface for rendering plug-ins that provide enhanced capabilities
@@ -30,6 +31,33 @@ import net.fabricmc.fabric.api.renderer.v1.mesh.MeshBuilder;
  * enhanced model rendering interfaces specified by the Fabric API.
  */
 public interface Renderer {
+	/**
+	 * Access to the current {@link Renderer} for creating and retrieving model builders
+	 * and materials. Will return null if no render plug in is active.
+	 */
+	@Nullable
+	static Renderer get() {
+		return RendererHolder.get();
+	}
+
+	/**
+	 * Performant test for {@link #get()} != null.
+	 */
+	static boolean isPresent() {
+		return RendererHolder.isPresent();
+	}
+
+	/**
+	 * Rendering extension mods must implement {@link Renderer} and
+	 * call this method during initialization.
+	 *
+	 * <p>Only one {@link Renderer} plug-in can be active in any game instance.
+	 * If a second mod attempts to register this method will throw an UnsupportedOperationException.
+	 */
+	static void register(Renderer renderer) {
+		RendererHolder.register(renderer);
+	}
+
 	/**
 	 * Obtain a new {@link MeshBuilder} instance used to create
 	 * baked models with enhanced features.

@@ -16,17 +16,30 @@
 
 package net.fabricmc.fabric.impl.renderer;
 
-import net.fabricmc.fabric.api.renderer.v1.Renderer;
-import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
+import org.jetbrains.annotations.Nullable;
 
-public final class RendererAccessImpl implements RendererAccess {
-	public static final RendererAccessImpl INSTANCE = new RendererAccessImpl();
+import net.fabricmc.fabric.api.renderer.v1.Renderer;
+
+public final class RendererHolder {
+	@Nullable
+	private static Renderer activeRenderer = null;
+
+	/** avoids null test every call to {@link #isPresent()}. */
+	private static boolean hasActiveRenderer = false;
 
 	// private constructor
-	private RendererAccessImpl() { }
+	private RendererHolder() { }
 
-	@Override
-	public void registerRenderer(Renderer renderer) {
+	@Nullable
+	public static Renderer get() {
+		return activeRenderer;
+	}
+
+	public static boolean isPresent() {
+		return hasActiveRenderer;
+	}
+
+	public static void register(Renderer renderer) {
 		if (renderer == null) {
 			throw new NullPointerException("Attempt to register a NULL rendering plug-in.");
 		} else if (activeRenderer != null) {
@@ -35,20 +48,5 @@ public final class RendererAccessImpl implements RendererAccess {
 			activeRenderer = renderer;
 			hasActiveRenderer = true;
 		}
-	}
-
-	private Renderer activeRenderer = null;
-
-	/** avoids null test every call to {@link #hasRenderer()}. */
-	private boolean hasActiveRenderer = false;
-
-	@Override
-	public Renderer getRenderer() {
-		return activeRenderer;
-	}
-
-	@Override
-	public boolean hasRenderer() {
-		return hasActiveRenderer;
 	}
 }
