@@ -29,13 +29,14 @@ import net.fabricmc.fabric.api.renderer.v1.material.MaterialView;
  */
 public class MaterialViewImpl implements MaterialView {
 	private static final BlendMode[] BLEND_MODES = BlendMode.values();
+	private static final int BLEND_MODE_COUNT = BLEND_MODES.length;
 
-	protected static final int BLEND_MODE_MASK = MathHelper.smallestEncompassingPowerOfTwo(BlendMode.values().length) - 1;
+	protected static final int BLEND_MODE_MASK = MathHelper.smallestEncompassingPowerOfTwo(BLEND_MODE_COUNT) - 1;
 	protected static final int COLOR_DISABLE_FLAG = BLEND_MODE_MASK + 1;
 	protected static final int EMISSIVE_FLAG = COLOR_DISABLE_FLAG << 1;
 	protected static final int DIFFUSE_FLAG = EMISSIVE_FLAG << 1;
 	protected static final int AO_FLAG = DIFFUSE_FLAG << 1;
-	public static final int VALUE_COUNT = (AO_FLAG << 1);
+	public static final int VALUE_COUNT = AO_FLAG << 1;
 
 	protected int bits;
 
@@ -45,7 +46,13 @@ public class MaterialViewImpl implements MaterialView {
 
 	@Override
 	public BlendMode blendMode() {
-		return BLEND_MODES[bits & BLEND_MODE_MASK];
+		int ordinal = bits & BLEND_MODE_MASK;
+
+		if (ordinal >= BLEND_MODE_COUNT) {
+			return BlendMode.DEFAULT;
+		}
+
+		return BLEND_MODES[ordinal];
 	}
 
 	@Override
